@@ -17,6 +17,9 @@ import sys
 import os
 from style import COLORS, STYLES, FONT_STYLES, GRAPH_STYLES
 from ui_helper_functions import apply_fonts, show_loading, hide_loading, show_status, setup_sidebar,setup_tooltips , setup_shortcuts
+from pyqtgraph import LinearRegionItem  , RectROI
+from matplotlib.widgets import SpanSelector
+from scipy.signal import wiener
 
 
 
@@ -33,6 +36,7 @@ class Ui_MainWindow(QMainWindow):
         self.signalTimeIndex = 0
         self.domain = "Time Domain"
         self.cached = False
+        self.noise_segment = None
         
         # Combined music and animal ranges
         self.music_animal_ranges = {
@@ -592,6 +596,8 @@ class Ui_MainWindow(QMainWindow):
         # self.modeList.currentTextChanged.connect(self.change_mode)
         self.frequencyDomainButton.clicked.connect(lambda : self.audiogramWidget.toggleShape())
         self.exportButton.clicked.connect(lambda : stopAudio(self))
+        self.selectNoiseButton.clicked.connect(self.select_noise)
+        self.applyWienerButton.clicked.connect(self.apply_wiener_filter_equalization)
 
         viewbox1 = self.graph1.getViewBox()
         viewbox2 = self.graph2.getViewBox()
@@ -1564,6 +1570,61 @@ class Ui_MainWindow(QMainWindow):
                 
             modified_fft[freq_mask] *= attenuation
             
+        # Apply inverse FFT
+        self.modifiedData = np.real(np.fft.ifft(modified_fft))
+        
+        # Update plots
+        signalPlotting(self)
+        plotSpectrogram(self)
+
+        if hasattr(self, 'audiogramWidget'):
+            self.audiogramWidget.updateData(
+                self.signalTime,
+                self.signalData,
+                self.modifiedData
+            )
+
+    def select_noise(self):
+        """Allow user to select a noise region interactively on the graph."""
+        # Create a LinearRegionItem for selection
+        region = LinearRegionItem()
+        self.graph1.addItem(region)  # Add to the graph
+
+        # Callback for when the region is selected
+        def on_select():
+            # Get the selected region's bounds
+            x_min, x_max = region.getRegion()
+            # Convert bounds to indices based on your signal
+            idx_min = int(x_min * self.samplingRate)
+            idx_max = int(x_max * self.samplingRate)
+            self.noise_segment = self.signalData[idx_min:idx_max]
+            print(f"Noise segment selected from {x_min:.2f}s to {x_max:.2f}s")
+
+            # Remove the region selector after selection
+            self.graph1.removeItem(region)
+
+        # Connect region selection changes to the callback
+        region.sigRegionChangeFinished.connect(on_select)
+
+    def apply_wiener_filter_equalization(self):
+        """Apply equalization for Wiener Filter mode"""
+        if self.signalData is None:
+            return
+        # Get FFT of signal
+        if not self.cached:
+            self._cached_fft = np.fft.fft(self.signalData)
+            self._cached_freqs = np.fft.fftfreq(len(self.signalData), 1/self.samplingRate)
+            self.cached = True
+
+        # Create a copy of the FFT data
+        modified_fft = self._cached_fft.copy()
+
+        noise_fft = np.fft.fft(self.noise_segment, n=len(self.signalData))  
+        noise_psd = np.abs(noise_fft)**2   # power spectral density
+        signal_psd = np.abs(self._cached_fft)**2  
+        wiener_filter = signal_psd / (signal_psd + noise_psd.mean())         # Wiener filter formula
+        modified_fft = self._cached_fft * wiener_filter
+        #self.modifiedData = wiener(self.signalData)               ## to check from scipy
         # Apply inverse FFT
         self.modifiedData = np.real(np.fft.ifft(modified_fft))
         

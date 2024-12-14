@@ -276,6 +276,8 @@ def change_mode(self, mode):
             self.apply_music_animal_equalization()
         elif mode == "Vocals and Phonemes":
             self.apply_vocal_phoneme_equalization()
+        elif mode == "Wiener Filter":
+            self.apply_wiener_filter_equalization()
 
 
 def clear_sliders(self):
@@ -347,6 +349,8 @@ def on_slider_changed(self):
         self.apply_music_animal_equalization()
     elif self.current_mode == "Vocals and Phonemes":
         self.apply_vocal_phoneme_equalization()
+    elif self.current_mode == "Wiener Filter":
+        self.apply_wiener_filter_equalization()
         
 def updateEqualization(self):
     # Track if audio is currently playing
@@ -416,6 +420,8 @@ def updateEqualization(self):
         self.apply_music_animal_equalization()
     elif self.current_mode == "Vocals and Phonemes":
         self.apply_vocal_phoneme_equalization()
+    elif self.current_mode == "Wiener Filter":
+        self.apply_wiener_filter_equalization()
 
     # Convert back to time domain
     self.modifiedData = np.real(np.fft.ifft(signal_fft))
