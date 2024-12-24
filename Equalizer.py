@@ -20,8 +20,13 @@ from ui_helper_functions import apply_fonts, show_loading, hide_loading, show_st
 from pyqtgraph import LinearRegionItem  , RectROI
 from matplotlib.widgets import SpanSelector
 from scipy.signal import wiener
+from PyQt5.QtCore import QTimer
 
 
+class WheelIgnoringSlider(QtWidgets.QSlider):
+    """Custom slider that ignores mouse wheel events"""
+    def wheelEvent(self, event):
+        event.ignore()
 
 
 class Ui_MainWindow(QMainWindow):
@@ -37,6 +42,19 @@ class Ui_MainWindow(QMainWindow):
         self.domain = "Time Domain"
         self.cached = False
         self.noise_segment = None
+
+        self._update_timer = QTimer()
+        self._update_timer.setSingleShot(True)  # Only trigger once
+        self._update_timer.setInterval(600)
+        self._update_timer.timeout.connect(self._apply_delayed_update)
+        self._slider_update_pending = False
+
+        self._equalizing = False
+        self._status_timer = QTimer()
+        self._status_timer.setSingleShot(True)
+        self._status_timer.setInterval(2000)  # 2 second status display
+        self._status_timer.timeout.connect(self.clear_status)
+
         
         # Combined music and animal ranges
         self.music_animal_ranges = {
@@ -54,15 +72,15 @@ class Ui_MainWindow(QMainWindow):
 
         # Vocals and Phonemes mode ranges
         self.vocal_ranges = {
-            "Instruments": {
-                "Background": [(50, 500)],
-                "Mid-range": [(500, 2000)],
-                "High-range": [(2000, 8000)]
+            "Vocals": {
+                "Bass Voice": [(70, 350)],      # Deep male vocals
+                "Mid Voice": [(350, 2000)],     # Most speaking/singing range
+                "High Voice": [(2000, 4000)]    # High harmonics & female vocals
             },
             "Phonemes": {
-                "S_sounds": [(4000, 8000)],
-                "F_sounds": [(2500, 6000)],
-                "Sh_sounds": [(1500, 4000)]
+                "Plosives": [(500, 2000)],      # p,b,t,d,k,g sounds
+                "Fricatives": [(2000, 8000)],    # f,v,s,z,sh sounds  
+                "Sibilants": [(4000, 12000)]     # s,z,sh,ch sounds
             }
         }
 
@@ -81,15 +99,15 @@ class Ui_MainWindow(QMainWindow):
 
         # Update vocal and phoneme ranges for singing
         self.vocal_ranges = {
-            "Instruments": {
-                "Backing Track": [(50, 500)],     # Remove background music
-                "Mid Instruments": [(500, 2000)], # Remove mid-range instruments
-                "High Instruments": [(2000, 8000)] # Remove high-range instruments
+            "Vocals": {
+                "Bass Voice": [(70, 350)],      # Deep male vocals
+                "Mid Voice": [(350, 2000)],     # Most speaking/singing range
+                "High Voice": [(2000, 4000)]    # High harmonics & female vocals
             },
             "Phonemes": {
-                "S-sounds": [(4000, 8000)],   # Remove sibilant sounds
-                "F-sounds": [(2500, 6000)],   # Remove fricative sounds
-                "Sh-sounds": [(1500, 4000)]   # Remove shushing sounds
+                "Plosives": [(500, 2000)],      # p,b,t,d,k,g sounds
+                "Fricatives": [(2000, 8000)],    # f,v,s,z,sh sounds  
+                "Sibilants": [(4000, 12000)]     # s,z,sh,ch sounds
             }
         }
         
@@ -1385,7 +1403,7 @@ class Ui_MainWindow(QMainWindow):
         self.clear_sliders()
         
         # Add instrument sliders
-        for name, ranges in self.vocal_ranges["Instruments"].items():
+        for name, ranges in self.vocal_ranges["Vocals"].items():
             self.add_slider(name, ranges[0][0], ranges[0][1])
             
         # Add phoneme sliders
@@ -1427,8 +1445,8 @@ class Ui_MainWindow(QMainWindow):
         """)
         layout.addWidget(label)
         
-        # Create slider
-        slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        # Create custom slider that ignores wheel events
+        slider = WheelIgnoringSlider(QtCore.Qt.Horizontal)
         slider.setMinimum(0)
         slider.setMaximum(100)
         slider.setValue(0)
@@ -1464,116 +1482,149 @@ class Ui_MainWindow(QMainWindow):
         # Store references
         self.sliders.append(slider)
         self.sliderLabels.append(label)
+    
+    def show_equalizing_status(self):
+        """Show equalizing in progress status"""
+        self._equalizing = True
+        show_status(self, "Applying equalization...")
+        self.loadingSpinner.show()
+
+    def hide_equalizing_status(self):  
+        """Hide equalizing status"""
+        self._equalizing = False
+        show_status(self, "Equalization complete")
+        self.loadingSpinner.hide()
+        self._status_timer.start()
+
+    def clear_status(self):
+        """Clear the status message"""
+        if not self._equalizing:
+            show_status(self, "")
+            
+    def _apply_delayed_update(self):
+        """Apply the actual filter updates after delay"""
+        self._slider_update_pending = False
         
-    def on_slider_changed(self):
-        """Handle slider value changes"""
         if self.current_mode == "Music and Animals":
             self.apply_music_animal_equalization()
         elif self.current_mode == "Vocals and Phonemes":
             self.apply_vocal_phoneme_equalization()
+        elif self.current_mode == "Wiener Filter":
+            self.apply_wiener_filter_equalization()
 
+    def on_slider_changed(self):
+        """Handle slider value changes with delay"""
+        if not self._slider_update_pending:
+            self._slider_update_pending = True
+            self._update_timer.start()
+
+    # Update the apply_music_animal_equalization method:
     def apply_music_animal_equalization(self):
-        """Apply equalization for music and animal mode"""
+        """Apply equalization for music and animal mode with optimizations"""
         if self.signalData is None or len(self.sliders) != 6:
             return
 
-        # Get FFT of signal
-        if not self.cached:
-            self._cached_fft = np.fft.fft(self.signalData)
-            self._cached_freqs = np.fft.fftfreq(len(self.signalData), 1/self.samplingRate)
-            self.cached = True
+        self.show_equalizing_status()
 
-        # Create a copy of the FFT data
-        modified_fft = self._cached_fft.copy()
-        
-        # Apply each slider's equalization
-        for i, (name, ranges) in enumerate(list(self.music_animal_ranges["Music"].items()) + 
-                                        list(self.music_animal_ranges["Animals"].items())):
-            # Get slider value (0-100)
-            slider_value = self.sliders[i].value()
-            
-            # Convert to attenuation factor (0-1)
-            attenuation = (slider_value / 100)
-            
-            # Get frequency range
-            freq_range = ranges[0]
-            freq_min, freq_max = freq_range
-            
-            # Find frequency indices
-            freq_mask = (abs(self._cached_freqs) >= freq_min) & (abs(self._cached_freqs) <= freq_max)
-            
-            # Apply attenuation to frequency range
-            modified_fft[freq_mask] *= attenuation
-            
-        # Apply inverse FFT
-        self.modifiedData = np.real(np.fft.ifft(modified_fft))
-        
-        # Update plots
-        signalPlotting(self)
-        plotSpectrogram(self)
+        try:
+            # Cache FFT only when needed
+            if not self.cached:
+                self._cached_fft = np.fft.fft(self.signalData)
+                self._cached_freqs = np.fft.fftfreq(len(self.signalData), 1/self.samplingRate)
+                self.cached = True
 
-        if hasattr(self, 'audiogramWidget'):
-            self.audiogramWidget.updateData(
-                self.signalTime,
-                self.signalData,
-                self.modifiedData
-            )
+            # Create a copy of the FFT data
+            modified_fft = self._cached_fft.copy()
+            
+            # Pre-calculate frequency masks
+            freq_masks = []
+            for name, ranges in list(self.music_animal_ranges["Music"].items()) + \
+                            list(self.music_animal_ranges["Animals"].items()):
+                freq_min, freq_max = ranges[0]
+                freq_masks.append((abs(self._cached_freqs) >= freq_min) & 
+                                (abs(self._cached_freqs) <= freq_max))
+            
+            # Apply all slider attenuations at once
+            for i, mask in enumerate(freq_masks):
+                attenuation = self.sliders[i].value() / 100
+                modified_fft[mask] *= attenuation
+                
+            # Apply inverse FFT
+            self.modifiedData = np.real(np.fft.ifft(modified_fft))
+            
+            # Update plots
+            signalPlotting(self)
+            plotSpectrogram(self)
 
+            # Update audiogram if it exists
+            if hasattr(self, 'audiogramWidget'):
+                self.audiogramWidget.updateData(
+                    self.signalTime,
+                    self.signalData,
+                    self.modifiedData
+                )
+        finally:
+            self.hide_equalizing_status()
+
+    # Similarly update apply_vocal_phoneme_equalization:
     def apply_vocal_phoneme_equalization(self):
-        """Apply equalization for vocals and phonemes mode"""
+        """Apply equalization for vocals and phonemes mode with optimizations"""
         if self.signalData is None or len(self.sliders) != 6:
             return
-
-        # Get FFT of signal
-        if not self.cached:
-            self._cached_fft = np.fft.fft(self.signalData)
-            self._cached_freqs = np.fft.fftfreq(len(self.signalData), 1/self.samplingRate)
-            self.cached = True
-
-        # Create a copy of the FFT data
-        modified_fft = self._cached_fft.copy()
         
-        # Apply each slider's equalization
-        for i, (name, ranges) in enumerate(list(self.vocal_ranges["Instruments"].items()) + 
-                                        list(self.vocal_ranges["Phonemes"].items())):
-            # Get slider value (0-100)
-            slider_value = self.sliders[i].value()
+        self.show_equalizing_status()
+    
+        try:
+            # Cache FFT calculations
+            if not self.cached:
+                self._cached_fft = np.fft.fft(self.signalData)
+                self._cached_freqs = np.fft.fftfreq(len(self.signalData), 1/self.samplingRate)
+                self.cached = True
+
+            modified_fft = self._cached_fft.copy()
             
-            # Convert to attenuation factor (0-1)
-            attenuation = (slider_value / 100)
+            # Pre-calculate masks and transitions
+            freq_masks = []
+            transitions = []
             
-            # Get frequency range
-            freq_range = ranges[0]
-            freq_min, freq_max = freq_range
-            
-            # Find frequency indices
-            freq_mask = (abs(self._cached_freqs) >= freq_min) & (abs(self._cached_freqs) <= freq_max)
-            
-            # Apply attenuation to frequency range with smoother transition for phonemes
-            if i >= 3:  # Phoneme sliders
-                # Create smooth transition at frequency boundaries
-                transition_width = (freq_max - freq_min) * 0.1
-                lower_transition = np.logical_and(
-                    abs(self._cached_freqs) >= freq_min - transition_width,
-                    abs(self._cached_freqs) < freq_min
-                )
-                upper_transition = np.logical_and(
-                    abs(self._cached_freqs) > freq_max,
-                    abs(self._cached_freqs) <= freq_max + transition_width
-                )
+            for i, (name, ranges) in enumerate(list(self.vocal_ranges["Vocals"].items()) + 
+                                            list(self.vocal_ranges["Phonemes"].items())):
+                freq_min, freq_max = ranges[0]
+                freq_mask = (abs(self._cached_freqs) >= freq_min) & (abs(self._cached_freqs) <= freq_max)
+                freq_masks.append(freq_mask)
                 
-                # Apply gradual attenuation in transition regions
-                modified_fft[lower_transition] *= (1 - (1-attenuation) * 
-                    (abs(self._cached_freqs[lower_transition]) - (freq_min-transition_width)) / transition_width)
-                modified_fft[upper_transition] *= (1 - (1-attenuation) * 
-                    (1 - (abs(self._cached_freqs[upper_transition]) - freq_max) / transition_width))
+                if i >= 3:  # Phoneme sliders
+                    transition_width = (freq_max - freq_min) * 0.1
+                    lower_trans = np.logical_and(
+                        abs(self._cached_freqs) >= freq_min - transition_width,
+                        abs(self._cached_freqs) < freq_min
+                    )
+                    upper_trans = np.logical_and(
+                        abs(self._cached_freqs) > freq_max,
+                        abs(self._cached_freqs) <= freq_max + transition_width
+                    )
+                    transitions.append((lower_trans, upper_trans, transition_width))
+                else:
+                    transitions.append(None)
+
+            # Apply all modifications at once
+            for i, (mask, transition) in enumerate(zip(freq_masks, transitions)):
+                attenuation = self.sliders[i].value() / 100
                 
-            modified_fft[freq_mask] *= attenuation
-            
-        # Apply inverse FFT
-        self.modifiedData = np.real(np.fft.ifft(modified_fft))
+                if transition:  # Phoneme slider
+                    lower_trans, upper_trans, width = transition
+                    modified_fft[lower_trans] *= (1 - (1-attenuation) * 
+                        (abs(self._cached_freqs[lower_trans]) - (freq_min-width)) / width)
+                    modified_fft[upper_trans] *= (1 - (1-attenuation) * 
+                        (1 - (abs(self._cached_freqs[upper_trans]) - freq_max) / width))
+                    
+                modified_fft[mask] *= attenuation
+
+            self.modifiedData = np.real(np.fft.ifft(modified_fft))
         
-        # Update plots
+        finally:
+            self.hide_equalizing_status()
+        
         signalPlotting(self)
         plotSpectrogram(self)
 
