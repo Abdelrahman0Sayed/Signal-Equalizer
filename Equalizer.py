@@ -85,17 +85,17 @@ class Ui_MainWindow(QMainWindow):
         }
 
         self.music_animal_ranges = {
-            "Music": {
-                "Bass Instruments": [(20, 300)],      # For removing bass/drums
-                "Mid-Range Instruments": [(300, 2000)], # For removing piano/guitar
-                "High-Range Instruments": [(2000, 8000)] # For removing cymbals/high notes
-            },
-            "Animals": {
-                "Low-Frequency Animals": [(50, 500)],   # For removing deep growls/roars
-                "Mid-Frequency Animals": [(500, 3000)], # For removing barks/calls
-                "High-Frequency Animals": [(3000, 20000)] # For removing chirps/squeaks
-            }
+        "Music": {
+            "Double Bass": [(41, 200)],      # Fundamental bass range
+            "Gong": [(65, 300)],            # Core resonant frequencies
+            "Violin": [(196, 3520)]         # Main violin range without harmonics
+        },
+        "Animals": {
+            "Lion": [(27, 200)],            # Core roar frequencies
+            "Pigeon": [(250, 600)],         # Primary cooing frequencies
+            "Crow": [(500, 1800)]           # Main caw frequencies
         }
+    }
 
         # Update vocal and phoneme ranges for singing
         self.vocal_ranges = {
