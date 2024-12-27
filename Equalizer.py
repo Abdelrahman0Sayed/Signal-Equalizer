@@ -85,17 +85,17 @@ class Ui_MainWindow(QMainWindow):
         }
 
         self.music_animal_ranges = {
-        "Music": {
-            "Double Bass": [(41, 200)],      # Fundamental bass range
-            "Gong": [(65, 300)],            # Core resonant frequencies
-            "Violin": [(196, 3520)]         # Main violin range without harmonics
-        },
-        "Animals": {
-            "Lion": [(27, 200)],            # Core roar frequencies
-            "Pigeon": [(250, 600)],         # Primary cooing frequencies
-            "Crow": [(500, 1800)]           # Main caw frequencies
+            "Animals": {
+                "Lion": [(50, 500)],        # Core roar frequencies
+                "Dog": [(500, 2000)],       # Barking frequency range
+                "Bird": [(2000, 3000)]      # Bird vocalization range
+            },
+            "Music": {
+                "Violin": [(3000, 6000)],         # Main violin frequency range
+                "Electric Guitar": [(6000, 15000)],  # Electric guitar frequency range
+                "Triangle": [(15000, 20000)]       # Triangle percussion range
+            }
         }
-    }
 
         # Update vocal and phoneme ranges for singing
         self.vocal_ranges = {
@@ -135,6 +135,15 @@ class Ui_MainWindow(QMainWindow):
         #     "Atrial Flutter": [(2, 8)],  # Atrial Flutter range
         #     "Ventricular fibrillation": [(0, 5)]  # Ventricular fibrillation range
         # }
+
+        self.uniform_ranges = {}
+        max_freq = 20000  # Maximum frequency
+        band_width = max_freq / 10
+        for i in range(10):
+            start_freq = i * band_width
+            end_freq = (i + 1) * band_width
+            self.uniform_ranges[f"Band {i+1}"] = [(start_freq, end_freq)]
+
 
         self.sliders = []   
         self.sliderLabels = []
@@ -1247,9 +1256,10 @@ class Ui_MainWindow(QMainWindow):
         self.modeList = QtWidgets.QComboBox()
         self.modeList.setFixedHeight(45)
         self.modeList.addItems([
-            "Music and Animals", 
-            "Vocals and Phonemes",  # For singing mode
-            "Wiener Filter"      # For noise removal
+            "Music and Animals",
+            "Vocals and Phonemes", 
+            "Wiener Filter",
+            "Uniform Range"  # Add new mode
         ])
         
         # Update mode icons
@@ -1410,6 +1420,14 @@ class Ui_MainWindow(QMainWindow):
         for name, ranges in self.vocal_ranges["Phonemes"].items():
             self.add_slider(name, ranges[0][0], ranges[0][1])
 
+    def create_uniform_sliders(self):
+        """Create sliders for uniform frequency bands"""
+        self.clear_sliders()
+        
+        for i in range(10):
+            self.add_slider(f"Band {i+1}", i*2000, (i+1)*2000)
+            
+
     def clear_sliders(self):
         """Clear all existing sliders"""
         # Delete existing widgets
@@ -1511,12 +1529,59 @@ class Ui_MainWindow(QMainWindow):
             self.apply_vocal_phoneme_equalization()
         elif self.current_mode == "Wiener Filter":
             self.apply_wiener_filter_equalization()
+        elif self.current_mode == "Uniform Range":
+            self.apply_uniform_equalization()
 
     def on_slider_changed(self):
         """Handle slider value changes with delay"""
         if not self._slider_update_pending:
             self._slider_update_pending = True
             self._update_timer.start()
+
+    def apply_uniform_equalization(self):
+        """Apply equalization for uniform frequency bands"""
+        if self.signalData is None or len(self.sliders) != 10:
+            return
+
+        self.show_equalizing_status()
+
+        try:
+            # Cache FFT if needed
+            if not self.cached:
+                self._cached_fft = np.fft.fft(self.signalData)
+                self._cached_freqs = np.fft.fftfreq(len(self.signalData), 1/self.samplingRate)
+                self.cached = True
+
+            modified_fft = self._cached_fft.copy()
+            
+            # Apply uniform band equalization
+            max_freq = 20000
+            band_width = max_freq / 10
+            
+            for i, slider in enumerate(self.sliders):
+                start_freq = i * band_width
+                end_freq = (i + 1) * band_width
+                gain = slider.value() / 100
+                
+                freq_mask = (abs(self._cached_freqs) >= start_freq) & \
+                        (abs(self._cached_freqs) < end_freq)
+                modified_fft[freq_mask] *= gain
+
+            # Apply inverse FFT
+            self.modifiedData = np.real(np.fft.ifft(modified_fft))
+            
+            # Update visualizations
+            signalPlotting(self)
+            plotSpectrogram(self)
+
+            if hasattr(self, 'audiogramWidget'):
+                self.audiogramWidget.updateData(
+                    self.signalTime,
+                    self.signalData,
+                    self.modifiedData
+                )
+        finally:
+            self.hide_equalizing_status()
 
     # Update the apply_music_animal_equalization method:
     def apply_music_animal_equalization(self):

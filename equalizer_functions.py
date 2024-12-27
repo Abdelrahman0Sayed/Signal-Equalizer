@@ -19,6 +19,10 @@ import sounddevice as sd
 from scipy import signal
 import time
 from audiogram import Audiogram
+import scipy
+from scipy import signal
+import matplotlib.pyplot as plt
+
 
 SPECTROGRAM_CONFIG = {
     'cmap': 'viridis',
@@ -270,6 +274,12 @@ def change_mode(self, mode):
         self.show_wiener_controls()
         self.slidersContainer.hide()
     
+    elif mode == "Uniform Range":
+        self.create_uniform_sliders()
+        self.hide_wiener_controls()
+        self.slidersContainer.show()
+    
+    
     # Update equalization if signal loaded
     if hasattr(self, 'signalData') and len(self.signalData) > 1:
         if mode == "Music and Animals":
@@ -278,6 +288,9 @@ def change_mode(self, mode):
             self.apply_vocal_phoneme_equalization()
         elif mode == "Wiener Filter":
             self.apply_wiener_filter_equalization()
+        elif mode == "Uniform Range":
+            self.apply_uniform_equalization()
+
 
 
 def clear_sliders(self):
@@ -664,83 +677,80 @@ def style_colorbar(colorbar, ax):
     cax.set_facecolor('none')
 
 def plotSpectrogram(self):
-    if len(self.signalData) <= 1:
-        return
+    try:
+        # Clear entire figures
+        self.firstSpectrogramFig.clear()
+        self.secondSpectrogramFig.clear()
         
-    # Clear and reset figures
-    self.firstSpectrogramFig.clear()
-    self.secondSpectrogramFig.clear()
-    
-    # Create new subplots with proper spacing
-    self.firstGraphAxis = self.firstSpectrogramFig.add_subplot(111)
-    self.secondGraphAxis = self.secondSpectrogramFig.add_subplot(111)
-    
-    # Calculate spectrograms
-    f1, t1, Sxx1 = signal.spectrogram(
-        self.signalData, 
-        fs=self.samplingRate,
-        nperseg=256,
-        noverlap=128,
-        mode='magnitude'
-    )
-    
-    f2, t2, Sxx2 = signal.spectrogram(
-        self.modifiedData, 
-        fs=self.samplingRate,
-        nperseg=256,
-        noverlap=128,
-        mode='magnitude'
-    )
-    
-    # Plot spectrograms
-    im1 = self.firstGraphAxis.pcolormesh(
-        t1, f1, 10 * np.log10(Sxx1),
-        shading='gouraud',
-        cmap='viridis'
-    )
-    
-    im2 = self.secondGraphAxis.pcolormesh(
-        t2, f2, 10 * np.log10(Sxx2),
-        shading='gouraud',
-        cmap='viridis'
-    )
-    
-    # Style axes
-    for ax in [self.firstGraphAxis, self.secondGraphAxis]:
-        ax.set_facecolor('none')
-        ax.grid(True, alpha=0.2, color='white')
-        ax.tick_params(colors='white')
-        for spine in ax.spines.values():
-            spine.set_color('white')
-    
-    # Add labels and titles with white text
-    self.firstGraphAxis.set_ylabel('Frequency [Hz]', color='white')
-    self.firstGraphAxis.set_xlabel('Time [sec]', color='white')
-    self.firstGraphAxis.set_title('Original Signal Spectrogram', color='white')
-    
-    self.secondGraphAxis.set_ylabel('Frequency [Hz]', color='white')
-    self.secondGraphAxis.set_xlabel('Time [sec]', color='white')
-    self.secondGraphAxis.set_title('Filtered Signal Spectrogram', color='white')
-    
-    # Add colorbars
-    cbar1 = self.firstSpectrogramFig.colorbar(im1)
-    cbar2 = self.secondSpectrogramFig.colorbar(im2)
-    
-    # Style colorbars
-    for cbar in [cbar1, cbar2]:
-        cbar.ax.yaxis.set_tick_params(colors='white')
-        cbar.set_label('Power [dB]', color='white')
-    
-    # Update layouts
-    self.firstSpectrogramFig.tight_layout()
-    self.secondSpectrogramFig.tight_layout()
-    
-    # Draw canvases
-    self.firstGraphCanvas.draw()
-    self.secondGraphCanvas.draw()
+        # Create new subplots
+        self.firstGraphAxis = self.firstSpectrogramFig.add_subplot(111)
+        self.secondGraphAxis = self.secondSpectrogramFig.add_subplot(111)
 
-    
+        # Calculate spectrograms
+        f1, t1, Sxx1 = scipy.signal.spectrogram(
+            self.signalData, 
+            fs=self.samplingRate,
+            nperseg=256,
+            noverlap=128
+        )
+        f2, t2, Sxx2 = scipy.signal.spectrogram(
+            self.modifiedData,
+            fs=self.samplingRate,
+            nperseg=256,
+            noverlap=128
+        )
 
+        # Safe log calculation
+        eps = 1e-10
+        spectral_db1 = 10 * np.log10(Sxx1 + eps)
+        spectral_db2 = 10 * np.log10(Sxx2 + eps)
+
+        # Plot spectrograms
+        im1 = self.firstGraphAxis.pcolormesh(
+            t1, f1, spectral_db1,
+            shading='gouraud',
+            cmap='viridis'
+        )
+        im2 = self.secondGraphAxis.pcolormesh(
+            t2, f2, spectral_db2,
+            shading='gouraud',
+            cmap='viridis'
+        )
+
+        # Style plots
+        for ax in [self.firstGraphAxis, self.secondGraphAxis]:
+            ax.set_ylabel('Frequency [Hz]', color='white')
+            ax.set_xlabel('Time [sec]', color='white')
+            ax.tick_params(colors='white')
+            ax.grid(True, color='gray', alpha=0.3)
+
+        self.firstGraphAxis.set_title('Original Signal Spectrogram', color='white')
+        self.secondGraphAxis.set_title('Filtered Signal Spectrogram', color='white')
+
+        # Create colorbars with explicit axes
+        self._colorbar1 = self.firstSpectrogramFig.colorbar(
+            im1, ax=self.firstGraphAxis
+        )
+        self._colorbar2 = self.secondSpectrogramFig.colorbar(
+            im2, ax=self.secondGraphAxis
+        )
+        
+        # Style colorbars
+        for cbar in [self._colorbar1, self._colorbar2]:
+            cbar.ax.yaxis.set_tick_params(colors='white')
+            cbar.set_label('Power [dB]', color='white')
+
+        # Update layouts with proper spacing
+        self.firstSpectrogramFig.tight_layout()
+        self.secondSpectrogramFig.tight_layout()
+
+        # Refresh canvases
+        self.firstGraphCanvas.draw()
+        self.secondGraphCanvas.draw()
+
+    except Exception as e:
+        print(f"Error plotting spectrogram: {str(e)}")
+        
 def playOriginalAudio(self):
     # Check if audio is currently playing
     if hasattr(self, '_playing_original') and self._playing_original:
@@ -854,3 +864,11 @@ def deleteSignal(self):
     
     self.signalTimeIndex = 0
     self.domain = "Time Domain"
+
+def create_uniform_sliders(self):
+    """Create 10 uniform range frequency sliders"""
+    self.clear_sliders()
+    
+    for name, ranges in self.uniform_ranges.items():
+        min_freq, max_freq = ranges[0]
+        self.add_slider(name, min_freq, max_freq)
