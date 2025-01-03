@@ -17,7 +17,7 @@ The Signal Equalizer is a versatile desktop application designed for modifying t
    - **Music and vowels mode**: Enables control of the magnitude of specific music instruments sounds and specific vowels from real life song.
     ![music and animals mode](images/general-screen.png)
    - **Wiener filter mode**:
-    ![music and animals mode](images/wiener-screen.png) 
+    ![wiener mode](images/wiener-screen.png) 
    
 
 2. **Fourier Transform Visualization**:
