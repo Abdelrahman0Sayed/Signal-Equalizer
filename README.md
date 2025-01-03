@@ -18,7 +18,7 @@ The Signal Equalizer is a versatile desktop application designed for modifying t
 
    - **Music and vowels mode**: Enables control of the magnitude of specific music instruments sounds and specific vowels from real life song.
    
-   - **Wiener filter mode**:
+   - **Wiener filter mode**: Enables the reduction of noise and enhancement of signal quality by optimally estimating the original signal from noisy observations.
     ![wiener mode](images/Wiener-screen.png) 
    
 
