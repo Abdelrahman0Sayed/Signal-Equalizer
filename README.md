@@ -14,7 +14,7 @@ The Signal Equalizer is a versatile desktop application designed for modifying t
    ![uniform mode](images/uniform-screen.png)
 
    - **Music and animals Mode**: Allows control of the magnitude of specific musical instruments and animals sounds in a mixed signal.
-   ![music and animals mode](images/images/music-and-animals-screen.png)
+   ![music and animals mode](images/music-and-animals-screen.png)
 
    - **Music and vowels mode**: Enables control of the magnitude of specific music instruments sounds and specific vowels from real life song.
    
