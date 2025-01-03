@@ -11,9 +11,14 @@ The Signal Equalizer is a versatile desktop application designed for modifying t
 
 1. **Multiple Modes of Operation**:
    - **Uniform Range Mode**: Divides the total frequency range into 10 equal segments, each controlled by a slider.
-   - **Musical Instruments Mode**: Allows control of the magnitude of specific musical instruments in a mixed signal.
-   - **Animal Sounds Mode**: Enables control of the magnitude of specific animal sounds in a mixture.
-   - **ECG Abnormalities Mode**: Controls the magnitude of different types of arrhythmia or normal ECG components.
+   ![uniform mode](images/general-screen.png)
+   - **Music and animals Mode**: Allows control of the magnitude of specific musical instruments and animals sounds in a mixed signal.
+   ![music and animals mode](images/general-screen.png)
+   - **Music and vowels mode**: Enables control of the magnitude of specific music instruments sounds and specific vowels from real life song.
+    ![music and animals mode](images/general-screen.png)
+   - **Wiener filter mode**:
+    ![music and animals mode](images/general-screen.png) 
+   
 
 2. **Fourier Transform Visualization**:
    - Displays the Fourier transform of the input signal.
@@ -31,6 +36,9 @@ The Signal Equalizer is a versatile desktop application designed for modifying t
 5. **Intuitive UI**:
    - Seamless switching between modes via menus or dropdowns.
    - Dynamically updated slider labels and functionality based on the selected mode.
+     
+   *Screenshot for UI*
+   ![UI](images/general-screen.png)
 
 
 ## Usage
