@@ -12,12 +12,14 @@ The Signal Equalizer is a versatile desktop application designed for modifying t
 1. **Multiple Modes of Operation**:
    - **Uniform Range Mode**: Divides the total frequency range into 10 equal segments, each controlled by a slider.
    ![uniform mode](images/uniform-screen.png)
+
    - **Music and animals Mode**: Allows control of the magnitude of specific musical instruments and animals sounds in a mixed signal.
-   ![music and animals mode](images/general-screen.png)
+   ![music and animals mode](images/images/music-and-animals-screen.png)
+
    - **Music and vowels mode**: Enables control of the magnitude of specific music instruments sounds and specific vowels from real life song.
-    ![music and animals mode](images/general-screen.png)
+   
    - **Wiener filter mode**:
-    ![wiener mode](images/wiener-screen.png) 
+    ![wiener mode](images/Wiener-screen.png) 
    
 
 2. **Fourier Transform Visualization**:
