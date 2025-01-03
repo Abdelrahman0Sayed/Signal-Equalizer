@@ -51,9 +51,9 @@ The Signal Equalizer is a versatile desktop application designed for modifying t
 2. **Choose a Mode**:
    - Select one of the four available modes:
      - Uniform Range Mode
-     - Musical Instruments Mode
-     - Animal Sounds Mode
-     - ECG Abnormalities Mode
+     - Music and Animals Mode
+     - Music and vowels Mode
+     - Wiener Filter Mode
 
 3. **Adjust Sliders**:
    - Modify frequency components using sliders.
@@ -62,22 +62,10 @@ The Signal Equalizer is a versatile desktop application designed for modifying t
 4. **Save Output**:
    - Save the modified signal as a new file.
 
-## Validation
-
-### Uniform Range Mode
-- Create a synthetic signal composed of multiple pure frequencies.
-- Validate that each slider correctly affects the respective frequency range.
-
-### Musical Instruments/Animal Sounds/ECG Modes
-- Test with real-world data to confirm that slider adjustments yield expected changes.
-
 ## Notes
 
 - Ensure proper slider-to-frequency mapping in non-uniform modes.
 - The Fourier transform visualization is crucial for validating frequency manipulations.
 - Synchronized cine viewers ensure an accurate time-domain representation.
 
-## Known Issues
 
-- Some operations may require high computational resources for long-duration signals or high-resolution spectrograms.
-- Audiogram scaling requires prior research to ensure accuracy.
