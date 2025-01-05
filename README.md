@@ -52,6 +52,7 @@ The Signal Equalizer is a versatile desktop application designed for modifying t
    - Select one of the four available modes:
      - Uniform Range Mode
      - Music and Animals Mode
+
      - Music and vowels Mode
      - Wiener Filter Mode
 
@@ -68,4 +69,6 @@ The Signal Equalizer is a versatile desktop application designed for modifying t
 - The Fourier transform visualization is crucial for validating frequency manipulations.
 - Synchronized cine viewers ensure an accurate time-domain representation.
 
+#### **Demo**
+https://github.com/user-attachments/assets/16b53a80-2f12-4857-a938-3e4309fe72b0
 
