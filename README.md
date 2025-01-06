@@ -69,3 +69,4 @@ The Signal Equalizer is a versatile desktop application designed for modifying t
 #### **Demo**
 https://github.com/user-attachments/assets/16b53a80-2f12-4857-a938-3e4309fe72b0
 
+https://github.com/user-attachments/assets/aeaa6347-3590-4be8-91eb-2f46cb4c8c71
