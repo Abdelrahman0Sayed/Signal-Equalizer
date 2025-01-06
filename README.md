@@ -69,3 +69,52 @@ The Signal Equalizer is a versatile desktop application designed for modifying t
 #### **Demo**
 https://github.com/user-attachments/assets/16b53a80-2f12-4857-a938-3e4309fe72b0
 
+
+#### **Setup**
+- Clone the repo
+```bash
+git clone https://github.com/Abdelrahman0Sayed/Signal-Equalizer.git
+```
+- Enter Project Folder
+```bash
+cd Signal-Equalizer
+```
+- Install the requirements
+```bash
+pip install -r requirements.txt
+```
+
+## Contributors <a name = "Contributors"></a>
+<table>
+  <tr>
+    <td align="center">
+    <a href="https://github.com/Abdelrahman0Sayed" target="_black">
+    <img src="https://avatars.githubusercontent.com/u/113141265?v=4" width="150px;" alt="Abdelrahman Sayed Nasr"/>
+    <br />
+    <sub><b>Abdelrahman Sayed Nasr</b></sub></a>
+    </td>
+    <td align="center">
+    <a href="https://github.com/MahmoudBL83" target="_black">
+    <img src="https://avatars.githubusercontent.com/u/95527734?v=4" width="150px;" alt="Mahmoud Bahaa"/>
+    <br />
+    <sub><b>Mahmoud Bahaa</b></sub></a>
+    </td>
+    <td align="center">
+    <a href="https://github.com/momowalid" target="_black">
+    <img src="https://avatars.githubusercontent.com/u/127145133?v=4" width="150px;" alt="Mohamed Walid"/>
+    <br />
+    <sub><b>Mohamed Walid</b></sub></a>
+    </td>
+    <td align="center">
+    <a href="https://github.com/Karim12Elbadwy" target="_black">
+    <img src="https://avatars.githubusercontent.com/u/190773888?v=4" width="150px;" alt="Kareem El-Badawi"/>
+    <br />
+    <sub><b>Kareem El-Badawi</b></sub></a>
+    </td>
+    <td align="center">
+    <a href="https://github.com/NadaMohamedElBasel" target="_black">
+    <img src="https://avatars.githubusercontent.com/u/110432081?v=4" width="150px;" alt="Nada El-Basel"/>
+    <br />
+    <sub><b>Nada El-Basel</b></sub></a>
+    </td>
+      </tr>
