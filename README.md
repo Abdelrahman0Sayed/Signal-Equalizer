@@ -73,7 +73,8 @@ https://github.com/user-attachments/assets/16b53a80-2f12-4857-a938-3e4309fe72b0
 https://github.com/user-attachments/assets/aeaa6347-3590-4be8-91eb-2f46cb4c8c71
 
 
-#### **Setup**
+## **Setup**
+
 - Clone the repo
 ```bash
 git clone https://github.com/Abdelrahman0Sayed/Signal-Equalizer.git
@@ -85,6 +86,10 @@ cd Signal-Equalizer
 - Install the requirements
 ```bash
 pip install -r requirements.txt
+```
+- Run the Application
+```bash
+python Equalizer.py
 ```
 
 ## Contributors <a name = "Contributors"></a>
