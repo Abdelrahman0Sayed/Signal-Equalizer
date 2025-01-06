@@ -1,6 +1,3 @@
-# Signal-Equalizer
-
-
 # Signal Equalizer Application
 
 ## Introduction
